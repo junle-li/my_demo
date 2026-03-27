@@ -1,0 +1,1150 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>3D Edit Comparison</title>
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)']],
+        displayMath: [['\\[', '\\]']]
+      },
+      svg: {
+        fontCache: 'global'
+      }
+    };
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+  <style>
+    :root {
+      --bg: #f5f1e8;
+      --panel: rgba(255, 252, 246, 0.92);
+      --panel-strong: #fffdf8;
+      --text: #1e2430;
+      --muted: #5c6472;
+      --line: #ddd1bf;
+      --accent: #9e4f2e;
+      --accent-soft: #f3dfd2;
+      --good: #1f7a56;
+      --bad: #b14a2b;
+      --neutral: #6b7280;
+      --shadow: 0 18px 50px rgba(94, 72, 48, 0.14);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "PingFang SC", "Hiragino Sans GB", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(255,255,255,0.9), transparent 32%),
+        linear-gradient(180deg, #efe8da 0%, #f7f3ec 35%, #f2ede4 100%);
+      line-height: 1.6;
+    }
+
+    .wrap {
+      width: min(1400px, calc(100vw - 32px));
+      margin: 0 auto;
+      padding: 28px 0 56px;
+    }
+
+    .hero {
+      background: linear-gradient(135deg, rgba(255,252,246,0.96), rgba(246,235,219,0.9));
+      border: 1px solid rgba(191, 169, 145, 0.5);
+      border-radius: 28px;
+      box-shadow: var(--shadow);
+      padding: 28px;
+      margin-bottom: 24px;
+    }
+
+    h1, h2, h3 {
+      font-family: Georgia, "Times New Roman", serif;
+      line-height: 1.2;
+      margin: 0 0 12px;
+    }
+
+    h1 { font-size: clamp(30px, 4vw, 44px); }
+    h2 { font-size: clamp(24px, 3vw, 30px); }
+    h3 { font-size: 20px; }
+
+    p { margin: 0 0 12px; }
+    code {
+      font-family: "Cascadia Code", Consolas, monospace;
+      background: rgba(158, 79, 46, 0.08);
+      padding: 2px 6px;
+      border-radius: 6px;
+      word-break: break-all;
+    }
+
+    .subtle { color: var(--muted); }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 24px;
+      align-items: start;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid rgba(191, 169, 145, 0.45);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      padding: 22px;
+      margin-bottom: 20px;
+      backdrop-filter: blur(8px);
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .stat {
+      background: var(--panel-strong);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 16px;
+    }
+
+    .stat strong {
+      display: block;
+      font-size: 28px;
+      margin-top: 4px;
+    }
+
+    .formula {
+      white-space: pre-wrap;
+      background: #201d1a;
+      color: #f8f3eb;
+      padding: 14px 16px;
+      border-radius: 16px;
+      overflow-x: auto;
+      margin: 0 0 12px;
+    }
+
+    .formula-inline {
+      font-family: "Cascadia Code", Consolas, monospace;
+      background: rgba(32, 29, 26, 0.08);
+      border: 1px solid rgba(32, 29, 26, 0.12);
+      border-radius: 8px;
+      padding: 2px 7px;
+      display: inline-block;
+      margin: 0 2px;
+    }
+
+    ul {
+      margin: 0;
+      padding-left: 20px;
+    }
+
+    .summary-table-wrap {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 760px;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 12px 14px;
+      border-bottom: 1px solid rgba(191, 169, 145, 0.4);
+      vertical-align: top;
+    }
+
+    th {
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+    }
+
+    .card {
+      background: linear-gradient(180deg, rgba(255,253,248,0.98), rgba(249,244,236,0.96));
+      border: 1px solid rgba(191, 169, 145, 0.52);
+      border-radius: 28px;
+      box-shadow: var(--shadow);
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: flex-start;
+      margin-bottom: 18px;
+    }
+
+    .metrics-inline {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .chip {
+      display: inline-flex;
+      gap: 6px;
+      align-items: center;
+      background: var(--panel-strong);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 10px 14px;
+      font-size: 14px;
+      white-space: nowrap;
+    }
+
+    .comparison-layout {
+      display: grid;
+      grid-template-columns: minmax(280px, 1fr) minmax(340px, 1.05fr) minmax(280px, 1fr);
+      gap: 18px;
+      margin-bottom: 18px;
+      align-items: stretch;
+    }
+
+    .input-column,
+    .output-column {
+      display: grid;
+      gap: 16px;
+      grid-template-rows: repeat(2, minmax(0, 1fr));
+    }
+
+    .center-column {
+      display: flex;
+      align-items: center;
+    }
+
+    figure {
+      margin: 0;
+    }
+
+    .image-panel {
+      background: rgba(255,255,255,0.55);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      min-height: 0;
+    }
+
+    .image-panel img {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      object-fit: contain;
+      display: block;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #efe7db, #f8f4ee);
+    }
+
+    .target-panel img {
+      aspect-ratio: 1 / 1;
+      min-height: 430px;
+    }
+
+    .effect-panel img,
+    .render-panel img {
+      aspect-ratio: 1 / 1;
+      min-height: 320px;
+    }
+
+    figcaption {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 12px;
+      text-align: center;
+    }
+
+    .metric-table-wrap {
+      overflow-x: auto;
+    }
+
+    .metric-table {
+      min-width: 420px;
+    }
+
+    .delta-positive { color: var(--bad); font-weight: 700; }
+    .delta-negative { color: var(--good); font-weight: 700; }
+    .delta-neutral { color: var(--neutral); font-weight: 700; }
+
+    .issues ul {
+      margin-top: 10px;
+    }
+
+    @media (max-width: 1100px) {
+      .hero-grid,
+      .comparison-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .input-column,
+      .output-column {
+        grid-template-rows: none;
+      }
+
+      .center-column {
+        display: block;
+      }
+
+      .target-panel img,
+      .effect-panel img,
+      .render-panel img {
+        min-height: 0;
+      }
+
+      .card-header {
+        flex-direction: column;
+      }
+
+      .metrics-inline {
+        justify-content: flex-start;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="hero">
+      <div class="hero-grid">
+        <div>
+          <h1>3D Edit Comparison Dashboard</h1>
+          <p class="subtle">根层 <code>output_*</code> 与目标 prompt 自身输出的对照可视化。页面顶部说明来自 <code>intro.md</code>。</p>
+          <div class="panel" style="margin:16px 0 0; padding:18px;">
+            <p>论文中的latent更新公式：</p>
+<div class="formula">\[X_{t-\delta_t}^{FE} = X_t^{FE} - \delta_t\nabla_{X_t^{FE}}\mathcal{L}_{align}\]</div>
+<p>为了衡量路径的长度：</p>
+<div class="formula">\[L_{step}(t_i) = \left\| (2-t_i)(F_{tar} - F_{src}) \right\|_2 \cdot |\Delta t_i| = |2-t_i| \cdot \left\| F_{tar} - F_{src} \right\|_2 \cdot |\Delta t_i|\]</div>
+<p>定义并计算：<span class="formula-inline">\(L_{edit} = \sum_{i}L_{step}(t_i)\)</span></p>
+<p>路径效率比衡量了轨迹偏离直线路径的程度。计算公式： <span class="formula-inline">\(\eta = \frac{\|X_{1}^{FE} - X_{0}^{FE}\|_2}{\sum_{i} \|\Delta X_{t_i}^{FE}\|_2} = \frac{\text{Net Displacement}}{\text{Total Arc Length}}\)</span>物理意义：直线的 <span class="formula-inline">\(\eta = 1\)</span>。 如果角度不一致导致 flow 互相抵消或走“弯路”，分母（即你算的 <span class="formula-inline">\(L_{edit}\)</span>）虽然很大，但分子（总位移）会变小，导致 <span class="formula-inline">\(\eta\)</span> 显著下降。这能直接量化你观察到的“编辑能力下降”。 其他超参：<span class="formula-inline">\(num_{steps}=40\)</span>, <span class="formula-inline">\(T_{steps}=50\)</span>, <span class="formula-inline">\(n_{max}=41\)</span></p>
+          </div>
+        </div>
+        <div class="panel" style="margin:0;">
+          <h2>Overview</h2>
+          <div class="stats">
+            <div class="stat"><span>Comparison Rows</span><strong>10</strong></div>
+            <div class="stat"><span>Objects Covered</span><strong>10</strong></div>
+            <div class="stat"><span>Delta L_edit > 0</span><strong>8</strong></div>
+            <div class="stat"><span>Delta eta > 0</span><strong>5</strong></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Summary Table</h2>
+      <p class="subtle">红色表示数值上升，绿色表示数值下降。</p>
+      <div class="summary-table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Object</th>
+              <th>Root Output</th>
+              <th>Target Prompt</th>
+              <th>Source Prompt</th>
+              <th>\( \Delta L_{edit} \)</th>
+              <th>\( \Delta \eta \)</th>
+            </tr>
+          </thead>
+          <tbody>
+            
+            <tr>
+              <td>3D_Dollhouse_Sink</td>
+              <td>3D_Dollhouse_Sink/output_1</td>
+              <td>prompt_3</td>
+              <td>prompt_1</td>
+              <td class="delta-positive">2.7798</td>
+              <td class="delta-positive">0.0064</td>
+            </tr>
+            
+            <tr>
+              <td>BATHROOM_CLASSIC</td>
+              <td>BATHROOM_CLASSIC/output_1</td>
+              <td>prompt_2</td>
+              <td>prompt_3</td>
+              <td class="delta-negative">-22.9109</td>
+              <td class="delta-negative">-0.0159</td>
+            </tr>
+            
+            <tr>
+              <td>Dino_4</td>
+              <td>Dino_4/output_1</td>
+              <td>prompt_2</td>
+              <td>prompt_3</td>
+              <td class="delta-negative">-2.0552</td>
+              <td class="delta-negative">-0.0091</td>
+            </tr>
+            
+            <tr>
+              <td>Dog</td>
+              <td>Dog/output_1</td>
+              <td>prompt_2</td>
+              <td>prompt_3</td>
+              <td class="delta-positive">12.5803</td>
+              <td class="delta-negative">-0.0070</td>
+            </tr>
+            
+            <tr>
+              <td>LEGO_Creationary_Game</td>
+              <td>LEGO_Creationary_Game/output_1</td>
+              <td>prompt_2</td>
+              <td>prompt_3</td>
+              <td class="delta-positive">35.5590</td>
+              <td class="delta-positive">0.0302</td>
+            </tr>
+            
+            <tr>
+              <td>SORTING_BUS</td>
+              <td>SORTING_BUS/output_1</td>
+              <td>prompt_2</td>
+              <td>prompt_3</td>
+              <td class="delta-positive">5.3405</td>
+              <td class="delta-positive">0.0041</td>
+            </tr>
+            
+            <tr>
+              <td>STACKING_BEAR</td>
+              <td>STACKING_BEAR/output_1</td>
+              <td>prompt_1</td>
+              <td>prompt_2</td>
+              <td class="delta-positive">12.7426</td>
+              <td class="delta-positive">0.0248</td>
+            </tr>
+            
+            <tr>
+              <td>Schleich_Allosaurus</td>
+              <td>Schleich_Allosaurus/output_1</td>
+              <td>prompt_2</td>
+              <td>prompt_3</td>
+              <td class="delta-positive">10.8250</td>
+              <td class="delta-negative">-0.0127</td>
+            </tr>
+            
+            <tr>
+              <td>Squirtin_Barnyard_Friends_4pk</td>
+              <td>Squirtin_Barnyard_Friends_4pk/output_1</td>
+              <td>prompt_2</td>
+              <td>prompt_3</td>
+              <td class="delta-positive">9.8423</td>
+              <td class="delta-negative">-0.0044</td>
+            </tr>
+            
+            <tr>
+              <td>Weisshai_Great_White_Shark</td>
+              <td>Weisshai_Great_White_Shark/output_1</td>
+              <td>prompt_3</td>
+              <td>prompt_2</td>
+              <td class="delta-positive">46.2836</td>
+              <td class="delta-positive">0.0322</td>
+            </tr>
+            
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    
+
+    <section>
+      
+            <section class="card">
+              <div class="card-header">
+                <div>
+                  <h2>3D_Dollhouse_Sink / output_1</h2>
+                  <p class="subtle">目标图像来自 <strong>prompt_3</strong>，跨 prompt 输入来自 <strong>prompt_1</strong></p>
+                </div>
+                <div class="metrics-inline">
+                  <span class="chip">\( \Delta L_{edit} \): <strong class="delta-positive">2.7798</strong></span>
+                  <span class="chip">\( \Delta \eta \): <strong class="delta-positive">0.0064</strong></span>
+                </div>
+              </div>
+
+              <div class="comparison-layout">
+                <div class="input-column">
+                  <figure class="image-panel render-panel">
+                    <img src="3D_Dollhouse_Sink/prompt_3/2d_render.png" alt="Same prompt render">
+                    <figcaption>Same-prompt 2d_render</figcaption>
+                  </figure>
+                  <figure class="image-panel render-panel">
+                    <img src="3D_Dollhouse_Sink/prompt_1/2d_render.png" alt="Cross prompt render">
+                    <figcaption>Cross-prompt 2d_render</figcaption>
+                  </figure>
+                </div>
+                <div class="center-column">
+                  <figure class="image-panel target-panel">
+                    <img src="3D_Dollhouse_Sink/prompt_3/2d_edit.png" alt="Target edit">
+                    <figcaption>Target 2d_edit</figcaption>
+                  </figure>
+                </div>
+                <div class="output-column">
+                  <figure class="image-panel effect-panel">
+                    <img src="3D_Dollhouse_Sink/prompt_3/output_3/anchorflow_tgs_7.5_nmax_41.png" alt="Baseline effect">
+                    <figcaption>Baseline effect</figcaption>
+                  </figure>
+                  <figure class="image-panel effect-panel">
+                    <img src="3D_Dollhouse_Sink/output_1/anchorflow_tgs_7.5_nmax_41.png" alt="Cross prompt effect">
+                    <figcaption>Cross-prompt effect</figcaption>
+                  </figure>
+                </div>
+              </div>
+
+              <div class="metric-table-wrap">
+                <table class="metric-table">
+                  <thead>
+                    <tr>
+                      <th>Metric</th>
+                      <th>Baseline</th>
+                      <th>Cross-prompt</th>
+                      <th>\( \Delta \)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>\( L_{edit} \)</td>
+                      <td>215.4316</td>
+                      <td>218.2114</td>
+                      <td class="delta-positive">2.7798</td>
+                    </tr>
+                    <tr>
+                      <td>\( \eta \)</td>
+                      <td>0.4155</td>
+                      <td>0.4219</td>
+                      <td class="delta-positive">0.0064</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+            
+            <section class="card">
+              <div class="card-header">
+                <div>
+                  <h2>BATHROOM_CLASSIC / output_1</h2>
+                  <p class="subtle">目标图像来自 <strong>prompt_2</strong>，跨 prompt 输入来自 <strong>prompt_3</strong></p>
+                </div>
+                <div class="metrics-inline">
+                  <span class="chip">\( \Delta L_{edit} \): <strong class="delta-negative">-22.9109</strong></span>
+                  <span class="chip">\( \Delta \eta \): <strong class="delta-negative">-0.0159</strong></span>
+                </div>
+              </div>
+
+              <div class="comparison-layout">
+                <div class="input-column">
+                  <figure class="image-panel render-panel">
+                    <img src="BATHROOM_CLASSIC/prompt_2/2d_render.png" alt="Same prompt render">
+                    <figcaption>Same-prompt 2d_render</figcaption>
+                  </figure>
+                  <figure class="image-panel render-panel">
+                    <img src="BATHROOM_CLASSIC/prompt_3/2d_render.png" alt="Cross prompt render">
+                    <figcaption>Cross-prompt 2d_render</figcaption>
+                  </figure>
+                </div>
+                <div class="center-column">
+                  <figure class="image-panel target-panel">
+                    <img src="BATHROOM_CLASSIC/prompt_2/2d_edit.png" alt="Target edit">
+                    <figcaption>Target 2d_edit</figcaption>
+                  </figure>
+                </div>
+                <div class="output-column">
+                  <figure class="image-panel effect-panel">
+                    <img src="BATHROOM_CLASSIC/prompt_2/output_2/anchorflow_tgs_7.5_nmax_41.png" alt="Baseline effect">
+                    <figcaption>Baseline effect</figcaption>
+                  </figure>
+                  <figure class="image-panel effect-panel">
+                    <img src="BATHROOM_CLASSIC/output_1/anchorflow_tgs_7.5_nmax_41.png" alt="Cross prompt effect">
+                    <figcaption>Cross-prompt effect</figcaption>
+                  </figure>
+                </div>
+              </div>
+
+              <div class="metric-table-wrap">
+                <table class="metric-table">
+                  <thead>
+                    <tr>
+                      <th>Metric</th>
+                      <th>Baseline</th>
+                      <th>Cross-prompt</th>
+                      <th>\( \Delta \)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>\( L_{edit} \)</td>
+                      <td>326.2556</td>
+                      <td>303.3447</td>
+                      <td class="delta-negative">-22.9109</td>
+                    </tr>
+                    <tr>
+                      <td>\( \eta \)</td>
+                      <td>0.4803</td>
+                      <td>0.4644</td>
+                      <td class="delta-negative">-0.0159</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+            
+            <section class="card">
+              <div class="card-header">
+                <div>
+                  <h2>Dino_4 / output_1</h2>
+                  <p class="subtle">目标图像来自 <strong>prompt_2</strong>，跨 prompt 输入来自 <strong>prompt_3</strong></p>
+                </div>
+                <div class="metrics-inline">
+                  <span class="chip">\( \Delta L_{edit} \): <strong class="delta-negative">-2.0552</strong></span>
+                  <span class="chip">\( \Delta \eta \): <strong class="delta-negative">-0.0091</strong></span>
+                </div>
+              </div>
+
+              <div class="comparison-layout">
+                <div class="input-column">
+                  <figure class="image-panel render-panel">
+                    <img src="Dino_4/prompt_2/2d_render.png" alt="Same prompt render">
+                    <figcaption>Same-prompt 2d_render</figcaption>
+                  </figure>
+                  <figure class="image-panel render-panel">
+                    <img src="Dino_4/prompt_3/2d_render.png" alt="Cross prompt render">
+                    <figcaption>Cross-prompt 2d_render</figcaption>
+                  </figure>
+                </div>
+                <div class="center-column">
+                  <figure class="image-panel target-panel">
+                    <img src="Dino_4/prompt_2/2d_edit.png" alt="Target edit">
+                    <figcaption>Target 2d_edit</figcaption>
+                  </figure>
+                </div>
+                <div class="output-column">
+                  <figure class="image-panel effect-panel">
+                    <img src="Dino_4/prompt_2/output_2/anchorflow_tgs_7.5_nmax_41.png" alt="Baseline effect">
+                    <figcaption>Baseline effect</figcaption>
+                  </figure>
+                  <figure class="image-panel effect-panel">
+                    <img src="Dino_4/output_1/anchorflow_tgs_7.5_nmax_41.png" alt="Cross prompt effect">
+                    <figcaption>Cross-prompt effect</figcaption>
+                  </figure>
+                </div>
+              </div>
+
+              <div class="metric-table-wrap">
+                <table class="metric-table">
+                  <thead>
+                    <tr>
+                      <th>Metric</th>
+                      <th>Baseline</th>
+                      <th>Cross-prompt</th>
+                      <th>\( \Delta \)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>\( L_{edit} \)</td>
+                      <td>448.5841</td>
+                      <td>446.5289</td>
+                      <td class="delta-negative">-2.0552</td>
+                    </tr>
+                    <tr>
+                      <td>\( \eta \)</td>
+                      <td>0.4266</td>
+                      <td>0.4175</td>
+                      <td class="delta-negative">-0.0091</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+            
+            <section class="card">
+              <div class="card-header">
+                <div>
+                  <h2>Dog / output_1</h2>
+                  <p class="subtle">目标图像来自 <strong>prompt_2</strong>，跨 prompt 输入来自 <strong>prompt_3</strong></p>
+                </div>
+                <div class="metrics-inline">
+                  <span class="chip">\( \Delta L_{edit} \): <strong class="delta-positive">12.5803</strong></span>
+                  <span class="chip">\( \Delta \eta \): <strong class="delta-negative">-0.0070</strong></span>
+                </div>
+              </div>
+
+              <div class="comparison-layout">
+                <div class="input-column">
+                  <figure class="image-panel render-panel">
+                    <img src="Dog/prompt_2/2d_render.png" alt="Same prompt render">
+                    <figcaption>Same-prompt 2d_render</figcaption>
+                  </figure>
+                  <figure class="image-panel render-panel">
+                    <img src="Dog/prompt_3/2d_render.png" alt="Cross prompt render">
+                    <figcaption>Cross-prompt 2d_render</figcaption>
+                  </figure>
+                </div>
+                <div class="center-column">
+                  <figure class="image-panel target-panel">
+                    <img src="Dog/prompt_2/2d_edit.png" alt="Target edit">
+                    <figcaption>Target 2d_edit</figcaption>
+                  </figure>
+                </div>
+                <div class="output-column">
+                  <figure class="image-panel effect-panel">
+                    <img src="Dog/prompt_2/output_2/anchorflow_tgs_7.5_nmax_41.png" alt="Baseline effect">
+                    <figcaption>Baseline effect</figcaption>
+                  </figure>
+                  <figure class="image-panel effect-panel">
+                    <img src="Dog/output_1/anchorflow_tgs_7.5_nmax_41.png" alt="Cross prompt effect">
+                    <figcaption>Cross-prompt effect</figcaption>
+                  </figure>
+                </div>
+              </div>
+
+              <div class="metric-table-wrap">
+                <table class="metric-table">
+                  <thead>
+                    <tr>
+                      <th>Metric</th>
+                      <th>Baseline</th>
+                      <th>Cross-prompt</th>
+                      <th>\( \Delta \)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>\( L_{edit} \)</td>
+                      <td>646.7262</td>
+                      <td>659.3065</td>
+                      <td class="delta-positive">12.5803</td>
+                    </tr>
+                    <tr>
+                      <td>\( \eta \)</td>
+                      <td>0.4777</td>
+                      <td>0.4707</td>
+                      <td class="delta-negative">-0.0070</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+            
+            <section class="card">
+              <div class="card-header">
+                <div>
+                  <h2>LEGO_Creationary_Game / output_1</h2>
+                  <p class="subtle">目标图像来自 <strong>prompt_2</strong>，跨 prompt 输入来自 <strong>prompt_3</strong></p>
+                </div>
+                <div class="metrics-inline">
+                  <span class="chip">\( \Delta L_{edit} \): <strong class="delta-positive">35.5590</strong></span>
+                  <span class="chip">\( \Delta \eta \): <strong class="delta-positive">0.0302</strong></span>
+                </div>
+              </div>
+
+              <div class="comparison-layout">
+                <div class="input-column">
+                  <figure class="image-panel render-panel">
+                    <img src="LEGO_Creationary_Game/prompt_2/2d_render.png" alt="Same prompt render">
+                    <figcaption>Same-prompt 2d_render</figcaption>
+                  </figure>
+                  <figure class="image-panel render-panel">
+                    <img src="LEGO_Creationary_Game/prompt_3/2d_render.png" alt="Cross prompt render">
+                    <figcaption>Cross-prompt 2d_render</figcaption>
+                  </figure>
+                </div>
+                <div class="center-column">
+                  <figure class="image-panel target-panel">
+                    <img src="LEGO_Creationary_Game/prompt_2/2d_edit.png" alt="Target edit">
+                    <figcaption>Target 2d_edit</figcaption>
+                  </figure>
+                </div>
+                <div class="output-column">
+                  <figure class="image-panel effect-panel">
+                    <img src="LEGO_Creationary_Game/prompt_2/output_2/anchorflow_tgs_7.5_nmax_41.png" alt="Baseline effect">
+                    <figcaption>Baseline effect</figcaption>
+                  </figure>
+                  <figure class="image-panel effect-panel">
+                    <img src="LEGO_Creationary_Game/output_1/anchorflow_tgs_7.5_nmax_41.png" alt="Cross prompt effect">
+                    <figcaption>Cross-prompt effect</figcaption>
+                  </figure>
+                </div>
+              </div>
+
+              <div class="metric-table-wrap">
+                <table class="metric-table">
+                  <thead>
+                    <tr>
+                      <th>Metric</th>
+                      <th>Baseline</th>
+                      <th>Cross-prompt</th>
+                      <th>\( \Delta \)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>\( L_{edit} \)</td>
+                      <td>221.7426</td>
+                      <td>257.3016</td>
+                      <td class="delta-positive">35.5590</td>
+                    </tr>
+                    <tr>
+                      <td>\( \eta \)</td>
+                      <td>0.4021</td>
+                      <td>0.4323</td>
+                      <td class="delta-positive">0.0302</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+            
+            <section class="card">
+              <div class="card-header">
+                <div>
+                  <h2>SORTING_BUS / output_1</h2>
+                  <p class="subtle">目标图像来自 <strong>prompt_2</strong>，跨 prompt 输入来自 <strong>prompt_3</strong></p>
+                </div>
+                <div class="metrics-inline">
+                  <span class="chip">\( \Delta L_{edit} \): <strong class="delta-positive">5.3405</strong></span>
+                  <span class="chip">\( \Delta \eta \): <strong class="delta-positive">0.0041</strong></span>
+                </div>
+              </div>
+
+              <div class="comparison-layout">
+                <div class="input-column">
+                  <figure class="image-panel render-panel">
+                    <img src="SORTING_BUS/prompt_2/2d_render.png" alt="Same prompt render">
+                    <figcaption>Same-prompt 2d_render</figcaption>
+                  </figure>
+                  <figure class="image-panel render-panel">
+                    <img src="SORTING_BUS/prompt_3/2d_render.png" alt="Cross prompt render">
+                    <figcaption>Cross-prompt 2d_render</figcaption>
+                  </figure>
+                </div>
+                <div class="center-column">
+                  <figure class="image-panel target-panel">
+                    <img src="SORTING_BUS/prompt_2/2d_edit.png" alt="Target edit">
+                    <figcaption>Target 2d_edit</figcaption>
+                  </figure>
+                </div>
+                <div class="output-column">
+                  <figure class="image-panel effect-panel">
+                    <img src="SORTING_BUS/prompt_2/output_2/anchorflow_tgs_7.5_nmax_41.png" alt="Baseline effect">
+                    <figcaption>Baseline effect</figcaption>
+                  </figure>
+                  <figure class="image-panel effect-panel">
+                    <img src="SORTING_BUS/output_1/anchorflow_tgs_7.5_nmax_41.png" alt="Cross prompt effect">
+                    <figcaption>Cross-prompt effect</figcaption>
+                  </figure>
+                </div>
+              </div>
+
+              <div class="metric-table-wrap">
+                <table class="metric-table">
+                  <thead>
+                    <tr>
+                      <th>Metric</th>
+                      <th>Baseline</th>
+                      <th>Cross-prompt</th>
+                      <th>\( \Delta \)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>\( L_{edit} \)</td>
+                      <td>486.1043</td>
+                      <td>491.4448</td>
+                      <td class="delta-positive">5.3405</td>
+                    </tr>
+                    <tr>
+                      <td>\( \eta \)</td>
+                      <td>0.5244</td>
+                      <td>0.5285</td>
+                      <td class="delta-positive">0.0041</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+            
+            <section class="card">
+              <div class="card-header">
+                <div>
+                  <h2>STACKING_BEAR / output_1</h2>
+                  <p class="subtle">目标图像来自 <strong>prompt_1</strong>，跨 prompt 输入来自 <strong>prompt_2</strong></p>
+                </div>
+                <div class="metrics-inline">
+                  <span class="chip">\( \Delta L_{edit} \): <strong class="delta-positive">12.7426</strong></span>
+                  <span class="chip">\( \Delta \eta \): <strong class="delta-positive">0.0248</strong></span>
+                </div>
+              </div>
+
+              <div class="comparison-layout">
+                <div class="input-column">
+                  <figure class="image-panel render-panel">
+                    <img src="STACKING_BEAR/prompt_1/2d_render.png" alt="Same prompt render">
+                    <figcaption>Same-prompt 2d_render</figcaption>
+                  </figure>
+                  <figure class="image-panel render-panel">
+                    <img src="STACKING_BEAR/prompt_2/2d_render.png" alt="Cross prompt render">
+                    <figcaption>Cross-prompt 2d_render</figcaption>
+                  </figure>
+                </div>
+                <div class="center-column">
+                  <figure class="image-panel target-panel">
+                    <img src="STACKING_BEAR/prompt_1/2d_edit.png" alt="Target edit">
+                    <figcaption>Target 2d_edit</figcaption>
+                  </figure>
+                </div>
+                <div class="output-column">
+                  <figure class="image-panel effect-panel">
+                    <img src="STACKING_BEAR/prompt_1/output_1/anchorflow_tgs_7.5_nmax_41.png" alt="Baseline effect">
+                    <figcaption>Baseline effect</figcaption>
+                  </figure>
+                  <figure class="image-panel effect-panel">
+                    <img src="STACKING_BEAR/output_1/anchorflow_tgs_7.5_nmax_41.png" alt="Cross prompt effect">
+                    <figcaption>Cross-prompt effect</figcaption>
+                  </figure>
+                </div>
+              </div>
+
+              <div class="metric-table-wrap">
+                <table class="metric-table">
+                  <thead>
+                    <tr>
+                      <th>Metric</th>
+                      <th>Baseline</th>
+                      <th>Cross-prompt</th>
+                      <th>\( \Delta \)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>\( L_{edit} \)</td>
+                      <td>311.9453</td>
+                      <td>324.6878</td>
+                      <td class="delta-positive">12.7426</td>
+                    </tr>
+                    <tr>
+                      <td>\( \eta \)</td>
+                      <td>0.4181</td>
+                      <td>0.4429</td>
+                      <td class="delta-positive">0.0248</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+            
+            <section class="card">
+              <div class="card-header">
+                <div>
+                  <h2>Schleich_Allosaurus / output_1</h2>
+                  <p class="subtle">目标图像来自 <strong>prompt_2</strong>，跨 prompt 输入来自 <strong>prompt_3</strong></p>
+                </div>
+                <div class="metrics-inline">
+                  <span class="chip">\( \Delta L_{edit} \): <strong class="delta-positive">10.8250</strong></span>
+                  <span class="chip">\( \Delta \eta \): <strong class="delta-negative">-0.0127</strong></span>
+                </div>
+              </div>
+
+              <div class="comparison-layout">
+                <div class="input-column">
+                  <figure class="image-panel render-panel">
+                    <img src="Schleich_Allosaurus/prompt_2/2d_render.png" alt="Same prompt render">
+                    <figcaption>Same-prompt 2d_render</figcaption>
+                  </figure>
+                  <figure class="image-panel render-panel">
+                    <img src="Schleich_Allosaurus/prompt_3/2d_render.png" alt="Cross prompt render">
+                    <figcaption>Cross-prompt 2d_render</figcaption>
+                  </figure>
+                </div>
+                <div class="center-column">
+                  <figure class="image-panel target-panel">
+                    <img src="Schleich_Allosaurus/prompt_2/2d_edit.png" alt="Target edit">
+                    <figcaption>Target 2d_edit</figcaption>
+                  </figure>
+                </div>
+                <div class="output-column">
+                  <figure class="image-panel effect-panel">
+                    <img src="Schleich_Allosaurus/prompt_2/output_2/anchorflow_tgs_7.5_nmax_41.png" alt="Baseline effect">
+                    <figcaption>Baseline effect</figcaption>
+                  </figure>
+                  <figure class="image-panel effect-panel">
+                    <img src="Schleich_Allosaurus/output_1/anchorflow_tgs_7.5_nmax_41.png" alt="Cross prompt effect">
+                    <figcaption>Cross-prompt effect</figcaption>
+                  </figure>
+                </div>
+              </div>
+
+              <div class="metric-table-wrap">
+                <table class="metric-table">
+                  <thead>
+                    <tr>
+                      <th>Metric</th>
+                      <th>Baseline</th>
+                      <th>Cross-prompt</th>
+                      <th>\( \Delta \)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>\( L_{edit} \)</td>
+                      <td>335.0135</td>
+                      <td>345.8385</td>
+                      <td class="delta-positive">10.8250</td>
+                    </tr>
+                    <tr>
+                      <td>\( \eta \)</td>
+                      <td>0.4178</td>
+                      <td>0.4051</td>
+                      <td class="delta-negative">-0.0127</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+            
+            <section class="card">
+              <div class="card-header">
+                <div>
+                  <h2>Squirtin_Barnyard_Friends_4pk / output_1</h2>
+                  <p class="subtle">目标图像来自 <strong>prompt_2</strong>，跨 prompt 输入来自 <strong>prompt_3</strong></p>
+                </div>
+                <div class="metrics-inline">
+                  <span class="chip">\( \Delta L_{edit} \): <strong class="delta-positive">9.8423</strong></span>
+                  <span class="chip">\( \Delta \eta \): <strong class="delta-negative">-0.0044</strong></span>
+                </div>
+              </div>
+
+              <div class="comparison-layout">
+                <div class="input-column">
+                  <figure class="image-panel render-panel">
+                    <img src="Squirtin_Barnyard_Friends_4pk/prompt_2/2d_render.png" alt="Same prompt render">
+                    <figcaption>Same-prompt 2d_render</figcaption>
+                  </figure>
+                  <figure class="image-panel render-panel">
+                    <img src="Squirtin_Barnyard_Friends_4pk/prompt_3/2d_render.png" alt="Cross prompt render">
+                    <figcaption>Cross-prompt 2d_render</figcaption>
+                  </figure>
+                </div>
+                <div class="center-column">
+                  <figure class="image-panel target-panel">
+                    <img src="Squirtin_Barnyard_Friends_4pk/prompt_2/2d_edit.png" alt="Target edit">
+                    <figcaption>Target 2d_edit</figcaption>
+                  </figure>
+                </div>
+                <div class="output-column">
+                  <figure class="image-panel effect-panel">
+                    <img src="Squirtin_Barnyard_Friends_4pk/prompt_2/output_2/anchorflow_tgs_7.5_nmax_41.png" alt="Baseline effect">
+                    <figcaption>Baseline effect</figcaption>
+                  </figure>
+                  <figure class="image-panel effect-panel">
+                    <img src="Squirtin_Barnyard_Friends_4pk/output_1/anchorflow_tgs_7.5_nmax_41.png" alt="Cross prompt effect">
+                    <figcaption>Cross-prompt effect</figcaption>
+                  </figure>
+                </div>
+              </div>
+
+              <div class="metric-table-wrap">
+                <table class="metric-table">
+                  <thead>
+                    <tr>
+                      <th>Metric</th>
+                      <th>Baseline</th>
+                      <th>Cross-prompt</th>
+                      <th>\( \Delta \)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>\( L_{edit} \)</td>
+                      <td>332.5507</td>
+                      <td>342.3930</td>
+                      <td class="delta-positive">9.8423</td>
+                    </tr>
+                    <tr>
+                      <td>\( \eta \)</td>
+                      <td>0.4531</td>
+                      <td>0.4487</td>
+                      <td class="delta-negative">-0.0044</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+            
+            <section class="card">
+              <div class="card-header">
+                <div>
+                  <h2>Weisshai_Great_White_Shark / output_1</h2>
+                  <p class="subtle">目标图像来自 <strong>prompt_3</strong>，跨 prompt 输入来自 <strong>prompt_2</strong></p>
+                </div>
+                <div class="metrics-inline">
+                  <span class="chip">\( \Delta L_{edit} \): <strong class="delta-positive">46.2836</strong></span>
+                  <span class="chip">\( \Delta \eta \): <strong class="delta-positive">0.0322</strong></span>
+                </div>
+              </div>
+
+              <div class="comparison-layout">
+                <div class="input-column">
+                  <figure class="image-panel render-panel">
+                    <img src="Weisshai_Great_White_Shark/prompt_3/2d_render.png" alt="Same prompt render">
+                    <figcaption>Same-prompt 2d_render</figcaption>
+                  </figure>
+                  <figure class="image-panel render-panel">
+                    <img src="Weisshai_Great_White_Shark/prompt_2/2d_render.png" alt="Cross prompt render">
+                    <figcaption>Cross-prompt 2d_render</figcaption>
+                  </figure>
+                </div>
+                <div class="center-column">
+                  <figure class="image-panel target-panel">
+                    <img src="Weisshai_Great_White_Shark/prompt_3/2d_edit.png" alt="Target edit">
+                    <figcaption>Target 2d_edit</figcaption>
+                  </figure>
+                </div>
+                <div class="output-column">
+                  <figure class="image-panel effect-panel">
+                    <img src="Weisshai_Great_White_Shark/prompt_3/output_3/anchorflow_tgs_7.5_nmax_41.png" alt="Baseline effect">
+                    <figcaption>Baseline effect</figcaption>
+                  </figure>
+                  <figure class="image-panel effect-panel">
+                    <img src="Weisshai_Great_White_Shark/output_1/anchorflow_tgs_7.5_nmax_41.png" alt="Cross prompt effect">
+                    <figcaption>Cross-prompt effect</figcaption>
+                  </figure>
+                </div>
+              </div>
+
+              <div class="metric-table-wrap">
+                <table class="metric-table">
+                  <thead>
+                    <tr>
+                      <th>Metric</th>
+                      <th>Baseline</th>
+                      <th>Cross-prompt</th>
+                      <th>\( \Delta \)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>\( L_{edit} \)</td>
+                      <td>341.6017</td>
+                      <td>387.8853</td>
+                      <td class="delta-positive">46.2836</td>
+                    </tr>
+                    <tr>
+                      <td>\( \eta \)</td>
+                      <td>0.4544</td>
+                      <td>0.4866</td>
+                      <td class="delta-positive">0.0322</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+            
+    </section>
+  </div>
+</body>
+</html>

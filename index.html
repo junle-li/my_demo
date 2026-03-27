@@ -323,7 +323,7 @@
 <p>为了衡量路径的长度：</p>
 <div class="formula">\[L_{step}(t_i) = \left\| (2-t_i)(F_{tar} - F_{src}) \right\|_2 \cdot |\Delta t_i| = |2-t_i| \cdot \left\| F_{tar} - F_{src} \right\|_2 \cdot |\Delta t_i|\]</div>
 <p>定义并计算：<span class="formula-inline">\(L_{edit} = \sum_{i}L_{step}(t_i)\)</span></p>
-<p>路径效率比衡量了轨迹偏离直线路径的程度。计算公式： <span class="formula-inline">\(\eta = \frac{\|X_{1}^{FE} - X_{0}^{FE}\|_2}{\sum_{i} \|\Delta X_{t_i}^{FE}\|_2} = \frac{\text{Net Displacement}}{\text{Total Arc Length}}\)</span>物理意义：直线的 <span class="formula-inline">\(\eta = 1\)</span>。 如果角度不一致导致 flow 互相抵消或走“弯路”，分母（即你算的 <span class="formula-inline">\(L_{edit}\)</span>）虽然很大，但分子（总位移）会变小，导致 <span class="formula-inline">\(\eta\)</span> 显著下降。这能直接量化你观察到的“编辑能力下降”。 其他超参：<span class="formula-inline">\(num_{steps}=40\)</span>, <span class="formula-inline">\(T_{steps}=50\)</span>, <span class="formula-inline">\(n_{max}=41\)</span></p>
+<p>路径效率比衡量了轨迹偏离直线路径的程度。计算公式： <span class="formula-inline">\(\eta = \frac{\|X_{1}^{FE} - X_{0}^{FE}\|_2}{\sum_{i} \|\Delta X_{t_i}^{FE}\|_2} = \frac{\text{Net Displacement}}{\text{Total Arc Length}}\)</span>物理意义：直线的 <span class="formula-inline">\(\eta = 1\)</span>。 如果角度不一致导致 flow 互相抵消或走“弯路”，分母（即 <span class="formula-inline">\(L_{edit}\)</span>）虽然很大，但分子（总位移）会变小，导致 <span class="formula-inline">\(\eta\)</span> 显著下降。这能直接量化你观察到的“编辑能力下降”。 其他超参：<span class="formula-inline">\(num_{steps}=40\)</span>, <span class="formula-inline">\(T_{steps}=50\)</span>, <span class="formula-inline">\(n_{max}=41\)</span></p>
           </div>
         </div>
         <div class="panel" style="margin:0;">
